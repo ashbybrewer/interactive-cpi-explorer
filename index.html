@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Chart of the Century — U.S. Prices &amp; Wages, 2000–2024</title>
+<meta name="description" content="Since 2000, prices in competitive sectors collapsed while regulated and subsidized sectors soared. An interactive explorer built on real BLS CPI and U.S. Census income data.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23eef1f1'/%3E%3Crect x='17' y='5' width='11' height='4' fill='%239e2b12'/%3E%3Crect x='17' y='12' width='7' height='4' fill='%23c75a2e'/%3E%3Cline x1='16' y1='2' x2='16' y2='30' stroke='%2314201d' stroke-width='1.5'/%3E%3Crect x='4' y='19' width='12' height='4' fill='%23136e72'/%3E%3Crect x='7' y='26' width='9' height='4' fill='%232c8780'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eef1f1;
+  --paper-2:#e7ebea;
+  --card:#f6f8f7;
+  --ink:#14201d;
+  --ink-soft:#5b6663;
+  --ink-faint:#8a938f;
+  --rule:#cbd3d0;
+  --rule-faint:#dde3e1;
+
+  /* rising — shielded from competition */
+  --r0:#7c1d0b; --r1:#9e2b12; --r2:#b83c1c; --r3:#c75a2e; --r4:#d17a45;
+  /* falling — exposed to competition */
+  --f0:#07474d; --f1:#0a5a60; --f2:#136e72; --f3:#2c8780; --f4:#57988e; --f5:#79a79d;
+  /* mixed, reference, wage */
+  --m0:#8a7e6b; --m1:#a99e88;
+  --ref:#3a4543;
+  --wage:#a8792a;
+
+  --rising-bg:rgba(158,43,18,.07);
+  --falling-bg:rgba(19,110,114,.07);
+
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+
+  --maxw:1120px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.55;
+  font-size:17px;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+::selection{background:#d17a45;color:#fff}
+
+/* ---------- shared layout ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+.section{padding:clamp(56px,8vw,104px) 0}
+a{color:inherit}
+
+/* eyebrow / labels */
+.eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);
+}
+
+/* ---------- datum line: the signature motif ---------- */
+.datum{
+  position:relative;height:1px;background:var(--ink);
+  margin:0;
+}
+.datum::before,.datum::after{
+  content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--ink);
+}
+.datum::before{left:0}
+.datum::after{right:0}
+.datum-row{display:flex;align-items:center;gap:16px;margin:22px 0}
+.datum-row .line{flex:1;height:1px;background:var(--rule);position:relative}
+.datum-row .line::after{content:"";position:absolute;right:0;top:-3px;width:1px;height:7px;background:var(--rule)}
+.datum-tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+
+/* ---------- HERO ---------- */
+.hero{
+  position:relative;
+  padding-top:clamp(44px,7vw,84px);
+  padding-bottom:clamp(40px,6vw,72px);
+  background:
+    linear-gradient(to right,var(--rule-faint) 1px,transparent 1px) 0 0/32px 100%,
+    linear-gradient(to bottom,var(--rule-faint) 1px,transparent 1px) 0 0/100% 32px,
+    var(--paper);
+  border-bottom:1px solid var(--rule);
+}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+.badge{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-soft);border:1px solid var(--rule);border-radius:2px;
+  padding:7px 11px;background:var(--card);line-height:1.3;
+}
+h1{
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:clamp(46px,9.2vw,118px);
+  line-height:.93;
+  letter-spacing:-.02em;
+  margin-top:clamp(26px,5vw,48px);
+  font-optical-sizing:auto;
+}
+h1 .em{font-style:italic;font-weight:500;color:var(--r1)}
+.thesis{
+  font-family:var(--serif);
+  font-weight:400;
+  font-size:clamp(19px,2.3vw,25px);
+  line-height:1.45;
+  max-width:30em;
+  color:#2a3431;
+  margin-top:6px;
+}
+.thesis b{font-weight:600;color:var(--ink)}
+.anchors{display:flex;flex-wrap:wrap;gap:14px;margin-top:clamp(30px,4vw,44px)}
+.anchor{
+  border:1px solid var(--rule);background:var(--card);border-radius:3px;
+  padding:14px 18px 13px;min-width:148px;flex:1 1 148px;max-width:230px;
+  position:relative;overflow:hidden;
+}
+.anchor .v{font-family:var(--mono);font-weight:600;font-size:clamp(26px,3.4vw,34px);line-height:1;letter-spacing:-.01em}
+.anchor .k{font-size:12.5px;color:var(--ink-soft);margin-top:8px;line-height:1.3}
+.anchor .bar{position:absolute;left:0;bottom:0;height:3px}
+.anchor.up .v{color:var(--r1)} .anchor.up .bar{background:var(--r1)}
+.anchor.dn .v{color:var(--f2)} .anchor.dn .bar{background:var(--f2)}
+.anchor.ref .v{color:var(--ref)} .anchor.ref .bar{background:var(--ref)}
+
+.scrollcue{display:flex;align-items:center;gap:10px;margin-top:42px;color:var(--ink-faint);
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+.scrollcue .dn{width:14px;height:14px;border-right:1.5px solid var(--ink-faint);border-bottom:1.5px solid var(--ink-faint);transform:rotate(45deg);animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:rotate(45deg) translate(0,0)}50%{transform:rotate(45deg) translate(3px,3px)}}
+
+/* ---------- section header ---------- */
+.s-head{margin-bottom:clamp(28px,4vw,44px);max-width:46em}
+.s-num{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--r2)}
+.s-head h2{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.4vw,46px);line-height:1.02;letter-spacing:-.015em;margin-top:14px}
+.s-head .dek{font-size:clamp(16px,1.7vw,18.5px);color:var(--ink-soft);margin-top:14px;line-height:1.5;max-width:42em}
+
+/* ---------- chart shell ---------- */
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.chart-wrap{position:relative}
+svg{display:block;width:100%;height:auto}
+.axis-label{font-family:var(--mono);font-size:11px;fill:var(--ink-faint);font-variant-numeric:tabular-nums}
+.grid-line{stroke:var(--rule-faint)}
+.zero-line{stroke:var(--ink);stroke-width:1.2}
+.zero-tick{stroke:var(--ink)}
+.serie-label{font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums;dominant-baseline:middle}
+.serie-name{font-family:var(--sans);font-size:11.5px;dominant-baseline:middle}
+
+/* line chart controls */
+.controls{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:16px 20px;border-top:1px solid var(--rule);background:var(--paper);
+}
+.playbtn{
+  display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+  font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);border:none;border-radius:3px;padding:11px 16px;
+  transition:background .15s;
+}
+.playbtn:hover{background:#26352f}
+.playbtn .ico{width:0;height:0;border-left:9px solid currentColor;border-top:6px solid transparent;border-bottom:6px solid transparent}
+.playbtn.playing .ico{width:9px;height:11px;border:none;background:
+  linear-gradient(currentColor,currentColor) 0 0/3px 100% no-repeat,
+  linear-gradient(currentColor,currentColor) 100% 0/3px 100% no-repeat}
+.year-readout{font-family:var(--mono);font-weight:600;font-size:30px;letter-spacing:-.01em;line-height:1;min-width:74px}
+.scrubwrap{flex:1;min-width:200px;display:flex;flex-direction:column;gap:6px}
+.scrubwrap .ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:var(--rule);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--ink);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--ink);cursor:pointer}
+input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(168,121,42,.4)}
+.legend-note{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);align-items:center}
+.legk{display:inline-flex;align-items:center;gap:7px}
+.legk i{width:18px;height:0;border-top-width:2.5px;border-top-style:solid;display:inline-block}
+
+/* ---------- bar chart toggles ---------- */
+.toggles{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.toggle{
+  font-family:var(--mono);font-size:12px;letter-spacing:.04em;cursor:pointer;
+  border:1px solid var(--rule);background:var(--card);border-radius:30px;padding:8px 15px 8px 13px;
+  display:inline-flex;align-items:center;gap:9px;color:var(--ink);transition:.15s;user-select:none;
+}
+.toggle .dot{width:11px;height:11px;border-radius:50%}
+.toggle.off{opacity:.4}
+.toggle .dot.rise{background:var(--r1)} .toggle .dot.fall{background:var(--f2)}
+
+/* ---------- why columns ---------- */
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.why-col{border:1px solid var(--rule);border-radius:5px;padding:26px 26px 28px;background:var(--card);position:relative}
+.why-col.down{border-top:3px solid var(--f2)}
+.why-col.up{border-top:3px solid var(--r1)}
+.why-col h3{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.why-col.down h3{color:var(--f1)} .why-col.up h3{color:var(--r1)}
+.why-col .sub{font-family:var(--serif);font-size:20px;font-weight:500;line-height:1.2;margin-bottom:18px;color:var(--ink)}
+.force{padding:14px 0;border-top:1px solid var(--rule-faint)}
+.force:first-of-type{border-top:none}
+.force b{font-weight:600;display:block;font-size:15.5px;margin-bottom:3px}
+.force span{font-size:14.5px;color:var(--ink-soft);line-height:1.5}
+.caveat{margin-top:22px;border:1px solid var(--rule);border-left:3px solid var(--wage);border-radius:4px;background:var(--card);padding:20px 24px}
+.caveat h4{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--wage);margin-bottom:9px}
+.caveat p{font-size:15px;color:var(--ink-soft);line-height:1.6;max-width:62em}
+
+/* ---------- calculator ---------- */
+.calc{display:grid;grid-template-columns:1.05fr 1fr;gap:0;border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--card)}
+.calc-in{padding:clamp(24px,3vw,34px);border-right:1px solid var(--rule)}
+.calc-out{padding:clamp(24px,3vw,34px);background:var(--paper)}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px}
+.field label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:7px;line-height:1.3}
+.money{display:flex;align-items:center;border:1px solid var(--rule);border-radius:3px;background:var(--paper);overflow:hidden}
+.money span{padding:0 4px 0 12px;color:var(--ink-faint);font-family:var(--mono);font-size:18px}
+.money input{border:none;background:transparent;font-family:var(--mono);font-size:18px;font-weight:600;color:var(--ink);padding:11px 12px 11px 0;width:100%;outline:none;font-variant-numeric:tabular-nums}
+.money:focus-within{box-shadow:inset 0 0 0 1px var(--ink)}
+
+.personas{margin:26px 0 8px}
+.personas .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:11px}
+.chiprow{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--sans);font-size:13px;cursor:pointer;border:1px solid var(--rule);background:var(--paper);border-radius:30px;padding:8px 14px;transition:.13s;color:var(--ink)}
+.chip:hover{border-color:var(--ink-soft)}
+.chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.sliders{margin-top:26px}
+.slider{margin-bottom:17px}
+.slider .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.slider .nm{font-size:14.5px;font-weight:500}
+.slider .nm em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-left:7px}
+.slider .wt{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-soft)}
+.slider input[type=range]{height:4px}
+
+/* output side */
+.out-eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px}
+.verdict{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4.6vw,46px);line-height:1.02;letter-spacing:-.01em;margin-bottom:6px}
+.verdict.good{color:var(--f1)} .verdict.bad{color:var(--r1)} .verdict.flat{color:var(--ink)}
+.verdict-sub{font-size:15.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:26px;max-width:34em}
+.verdict-sub b{color:var(--ink);font-weight:600}
+
+.metric-bars{display:flex;flex-direction:column;gap:15px;margin:8px 0 24px}
+.mb{}
+.mb .mb-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:13.5px}
+.mb .mb-top .mb-v{font-family:var(--mono);font-weight:600;font-size:15px}
+.mb .track{height:9px;background:var(--paper-2);border:1px solid var(--rule);border-radius:5px;overflow:hidden;position:relative}
+.mb .fill{height:100%;border-radius:5px 0 0 5px;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.mb.income .fill{background:var(--wage)} .mb.income .mb-v{color:var(--wage)}
+.mb.basket .fill{background:var(--r2)} .mb.basket .mb-v{color:var(--r2)}
+.mb.cpi .fill{background:var(--ref)} .mb.cpi .mb-v{color:var(--ref)}
+
+.concrete{border-top:1px solid var(--rule);padding-top:20px;font-size:14.5px;color:var(--ink-soft);line-height:1.6}
+.concrete .big{font-family:var(--mono);font-weight:600;color:var(--ink);font-size:16px}
+
+/* ---------- footer / methodology ---------- */
+.method{border-top:1px solid var(--rule);background:var(--paper-2)}
+.method .wrap{padding-top:clamp(48px,6vw,72px);padding-bottom:clamp(48px,6vw,72px)}
+.method h2{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3.2vw,34px);margin-bottom:8px}
+.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:30px}
+.method-grid h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--r2);margin-bottom:10px}
+.method-grid p{font-size:14px;color:var(--ink-soft);line-height:1.6}
+.method-grid a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.method-grid a:hover{text-decoration-color:var(--r2)}
+.method ul{list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);line-height:1.9;margin-top:6px}
+.method ul b{color:var(--ink);font-weight:600}
+.colophon{margin-top:44px;padding-top:24px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--ink-faint)}
+
+/* tooltip */
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:4px;padding:9px 11px;font-family:var(--mono);font-size:11.5px;line-height:1.5;opacity:0;transition:opacity .12s;z-index:5;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.tip .ty{font-weight:600;font-size:13px;margin-bottom:4px;letter-spacing:.02em}
+.tip .tr{display:flex;justify-content:space-between;gap:14px}
+.tip .tr i{width:8px;height:8px;border-radius:1px;display:inline-block;margin-right:5px;vertical-align:middle}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- responsive ---------- */
+@media (max-width:860px){
+  .calc{grid-template-columns:1fr}
+  .calc-in{border-right:none;border-bottom:1px solid var(--rule)}
+  .why-grid{grid-template-columns:1fr}
+  .method-grid{grid-template-columns:1fr;gap:24px}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  .wrap{padding:0 18px}
+  .field-grid{grid-template-columns:1fr}
+  .anchor{min-width:120px;flex-basis:120px}
+  .year-readout{font-size:24px;min-width:60px}
+  .controls{gap:12px;padding:14px}
+  .datum-row{margin:16px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <div class="eyebrow">U.S. consumer prices &amp; wages · 2000–2024</div>
+      <div class="badge">Source data · BLS CPI-U<br>U.S. Census Bureau</div>
+    </div>
+
+    <h1>The Chart of<br>the <span class="em">Century</span></h1>
+
+    <div class="datum-row" aria-hidden="true">
+      <span class="datum-tag">Baseline · Year 2000 = 0%</span>
+      <span class="line"></span>
+      <span class="datum-tag">24 years of price change</span>
+    </div>
+
+    <p class="thesis">Since 2000, almost everything open to competition got radically cheaper — TVs, software, toys, clothing. Almost everything <b>shielded</b> from it got radically dearer — hospitals, college, child care. <b>“Inflation” was never a single number.</b></p>
+
+    <div class="anchors">
+      <div class="anchor up"><div class="v" id="a-hosp">+258%</div><div class="k">Hospital services</div><div class="bar" style="width:100%"></div></div>
+      <div class="anchor up"><div class="v">+182%</div><div class="k">College tuition</div><div class="bar" style="width:71%"></div></div>
+      <div class="anchor ref"><div class="v">+82%</div><div class="k">Overall inflation (all items)</div><div class="bar" style="width:32%"></div></div>
+      <div class="anchor dn"><div class="v">−98%</div><div class="k">Televisions, in real terms</div><div class="bar" style="width:100%"></div></div>
+    </div>
+
+    <div class="scrollcue">Explore the divergence <span class="dn"></span></div>
+  </div>
+</header>
+
+<!-- ===================== 01 — THE DIVERGENCE ===================== -->
+<section class="section" id="sec-race">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="s-num">01 / The divergence</div>
+      <h2>One starting line, two destinies.</h2>
+      <p class="dek">Every category begins together at zero in the year 2000. Press play and watch them fan apart. The red lines are sectors insulated from market competition; the teal lines are sectors fully exposed to it.</p>
+    </div>
+
+    <div class="panel reveal">
+      <div class="chart-wrap" id="lineWrap">
+        <svg id="lineChart" viewBox="0 0 1040 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Animated line chart of price change by category, 2000 to 2024"></svg>
+        <div class="tip" id="lineTip"></div>
+      </div>
+      <div class="controls">
+        <button class="playbtn" id="playBtn" aria-label="Play animation"><span class="ico"></span><span id="playTxt">Play</span></button>
+        <div class="year-readout mono" id="yearOut">2000</div>
+        <div class="scrubwrap">
+          <input type="range" id="scrub" min="0" max="24" value="0" step="1" aria-label="Scrub through years 2000 to 2024">
+          <div class="ends"><span>2000</span><span>2024</span></div>
+        </div>
+        <div class="legend-note">
+          <span class="legk"><i style="border-color:var(--ref);border-top-style:dashed"></i> Overall CPI</span>
+          <span class="legk"><i style="border-color:var(--wage);border-top-style:dashed"></i> Avg. wages</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 02 — THE RANKING ===================== -->
+<section class="section" id="sec-bars" style="background:linear-gradient(var(--rule-faint) 1px,transparent 1px) 0 0/100% 100%;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="s-num">02 / The ranking</div>
+      <h2>Who won, and who lost.</h2>
+      <p class="dek">The full 2000–2024 price change for each category, ranked top to bottom. The dashed guides mark overall inflation (+82%) and average wage growth (+115%) — anything above wages got more expensive faster than paychecks grew.</p>
+    </div>
+
+    <div class="toggles reveal">
+      <div class="toggle" data-grp="regulated"><span class="dot rise"></span>Shielded from competition</div>
+      <div class="toggle" data-grp="tradable"><span class="dot fall"></span>Exposed to competition</div>
+    </div>
+
+    <div class="panel reveal" style="background:var(--card)">
+      <div class="chart-wrap">
+        <svg id="barChart" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Ranked bar chart of total price change by category, 2000 to 2024"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 03 — WHY ===================== -->
+<section class="section" id="sec-why">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="s-num">03 / Why the split</div>
+      <h2>The same economy, pulling two ways.</h2>
+      <p class="dek">The pattern is not random. It tracks one variable almost perfectly: whether buyers, sellers, and prices were free to respond to each other.</p>
+    </div>
+
+    <div class="why-grid reveal">
+      <div class="why-col down">
+        <h3>Forces pushing prices down</h3>
+        <div class="sub">Where competition was allowed to work</div>
+        <div class="force"><b>Global trade &amp; offshoring</b><span>Manufacturing moved to the lowest-cost producer on earth, and tariffs on most goods fell for decades.</span></div>
+        <div class="force"><b>Automation &amp; productivity</b><span>Each factory worker and each line of code produces far more than it did in 2000, and the savings show up at the register.</span></div>
+        <div class="force"><b>Near-zero marginal cost</b><span>Software, streaming, and digital goods cost almost nothing to copy. Moore's Law made the electronics inside everything collapse in price.</span></div>
+        <div class="force"><b>Real price competition</b><span>Buyers can comparison-shop a TV in seconds. Sellers who don't cut prices lose the sale.</span></div>
+      </div>
+      <div class="why-col up">
+        <h3>Forces pushing prices up</h3>
+        <div class="sub">Where competition was blunted or blocked</div>
+        <div class="force"><b>Third-party payment</b><span>When insurance, government, or loans foot the bill, the person choosing the service rarely sees or feels the price.</span></div>
+        <div class="force"><b>Restricted supply</b><span>Licensing, accreditation, certificate-of-need laws, and zoning cap how many hospitals, colleges, and homes can exist.</span></div>
+        <div class="force"><b>Subsidized demand</b><span>Cheap student loans and tax preferences let sellers raise prices without losing customers — the subsidy gets capitalized into the cost.</span></div>
+        <div class="force"><b>Baumol's cost disease</b><span>A heart surgery or a seminar still takes skilled human hours that can't be automated away, so their cost rises with overall wages.</span></div>
+      </div>
+    </div>
+
+    <div class="caveat reveal">
+      <h4>One honest caveat</h4>
+      <p>These are <b>price indices</b>, not measures of value for money. The BLS adjusts goods like televisions for quality — a 2024 TV is vastly better than a 2000 model, which deepens the measured price drop. Health care and education improved in quality too, but those gains are far harder to price. The chart shows what happened to the sticker; it does not, on its own, settle whether any sector delivers more for what you pay.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 04 — CALCULATOR ===================== -->
+<section class="section" id="sec-calc" style="background:var(--paper-2);border-top:1px solid var(--rule)">
+  <div class="wrap">
+    <div class="s-head reveal">
+      <div class="s-num">04 / The personal test</div>
+      <h2>Are you actually better off?</h2>
+      <p class="dek">There is no single inflation rate for a life — only for a basket. Tell the calculator how you spend, and it builds your <em>personal</em> inflation rate from the real category data, then weighs it against your income.</p>
+    </div>
+
+    <div class="calc reveal">
+      <div class="calc-in">
+        <div class="field-grid">
+          <div class="field">
+            <label>Your household income today (2024)</label>
+            <div class="money"><span>$</span><input id="incNow" class="mono" type="text" inputmode="numeric" value="83,730"></div>
+          </div>
+          <div class="field">
+            <label>What you (or the median household) earned in 2000</label>
+            <div class="money"><span>$</span><input id="incThen" class="mono" type="text" inputmode="numeric" value="42,148"></div>
+          </div>
+        </div>
+
+        <div class="personas">
+          <div class="lab">Start from a life</div>
+          <div class="chiprow" id="personaRow"></div>
+        </div>
+
+        <div class="sliders" id="sliderHost"></div>
+      </div>
+
+      <div class="calc-out">
+        <div class="out-eyebrow">The verdict</div>
+        <div class="verdict" id="verdict">+8.6% ahead</div>
+        <div class="verdict-sub" id="verdictSub"></div>
+
+        <div class="metric-bars">
+          <div class="mb income"><div class="mb-top"><span>Your income growth</span><span class="mb-v" id="mbIncomeV">+98.7%</span></div><div class="track"><div class="fill" id="mbIncome"></div></div></div>
+          <div class="mb basket"><div class="mb-top"><span>Your basket's inflation</span><span class="mb-v" id="mbBasketV">+83%</span></div><div class="track"><div class="fill" id="mbBasket"></div></div></div>
+          <div class="mb cpi"><div class="mb-top"><span>Official inflation (all items)</span><span class="mb-v">+82%</span></div><div class="track"><div class="fill" id="mbCpi"></div></div></div>
+        </div>
+
+        <div class="concrete" id="concrete"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== METHODOLOGY ===================== -->
+<footer class="method">
+  <div class="wrap">
+    <div class="eyebrow" style="margin-bottom:18px">Methodology &amp; sources</div>
+    <h2>Built on the public record.</h2>
+    <p style="max-width:54em;color:var(--ink-soft);font-size:15.5px;line-height:1.6">Every figure here is computed from official U.S. government series. Price changes are annual-average CPI, indexed so that the year 2000 equals zero, measured through 2024 — the last complete year. The interpretation follows economist Mark J. Perry's long-running “Chart of the Century.”</p>
+
+    <div class="method-grid">
+      <div>
+        <h5>Prices</h5>
+        <p>U.S. Bureau of Labor Statistics, Consumer Price Index for All Urban Consumers (CPI-U), not seasonally adjusted, U.S. city average. Each category is a published CPI item index; values are annual averages indexed to 2000 = 0%.</p>
+        <p style="margin-top:10px"><a href="https://www.bls.gov/cpi/" target="_blank" rel="noopener">bls.gov/cpi</a></p>
+      </div>
+      <div>
+        <h5>Wages &amp; income</h5>
+        <p>Average hourly earnings of production and nonsupervisory employees, total private (BLS, CES). Household income is the U.S. Census Bureau median: $42,148 in 2000 and $83,730 in 2024 (current dollars).</p>
+        <p style="margin-top:10px"><a href="https://www.census.gov/topics/income-poverty/income.html" target="_blank" rel="noopener">census.gov/income</a></p>
+      </div>
+      <div>
+        <h5>How to read it</h5>
+        <ul>
+          <li><b>+258%</b> — price rose to 3.6× its 2000 level</li>
+          <li><b>0%</b> — the baseline; price unchanged</li>
+          <li><b>−98%</b> — real price nearly vanished</li>
+          <li><b>Personal CPI</b> — your spending weights × each category's change</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="colophon">
+      <span>The Chart of the Century — interactive edition</span>
+      <span id="rangeStamp">CPI-U · 2000–2024 · figures rounded</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DATA = {"years":[2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],"series":[{"id":"CUUR0000SEMD01","label":"Hospital services","cls":"regulated","base_year":2000,"values":[0.0,6.7,16.2,24.9,32.3,39.4,48.5,58.4,70.2,81.8,96.1,108.2,118.8,129.1,140.5,150.4,161.7,174.6,186.7,192.4,204.6,213.7,224.9,238.4,258.0],"end":258.0},{"id":"CUUR0000SEEB01","label":"College tuition","cls":"regulated","base_year":2000,"values":[0.0,5.1,12.3,21.7,33.2,43.2,52.8,62.3,72.4,82.8,92.3,102.0,111.8,120.7,128.9,136.8,143.2,148.0,153.5,160.8,164.3,166.6,172.4,177.6,182.4],"end":182.4},{"id":"CUUR0000SSEA011","label":"College textbooks","cls":"regulated","base_year":2001,"values":[null,0.0,4.2,11.0,15.5,20.3,28.0,38.6,49.0,60.2,68.8,77.3,89.6,101.7,109.6,122.0,134.2,140.3,142.6,136.9,133.3,135.5,145.9,140.5,140.7],"end":140.7},{"id":"CUUR0000SEEB03","label":"Child care","cls":"regulated","base_year":2000,"values":[0.0,5.0,10.4,15.4,19.8,25.0,31.8,37.5,43.8,49.0,53.9,58.1,62.0,66.0,69.5,76.2,81.2,85.8,88.8,94.1,99.6,103.4,111.4,123.3,135.3],"end":135.3},{"id":"CUUR0000SAM2","label":"Medical care","cls":"regulated","base_year":2000,"values":[0.0,4.8,10.1,15.0,20.8,26.6,31.8,38.8,44.7,49.4,54.6,59.3,65.5,70.7,74.7,79.0,86.0,90.5,94.7,101.5,111.5,115.4,124.7,123.9,130.2],"end":130.2},{"id":"WAGES","label":"Average hourly wages","cls":"wage","base_year":2000,"values":[0.0,3.8,6.8,9.6,11.9,15.0,19.5,24.3,28.9,32.8,35.9,38.7,40.8,43.7,47.0,50.1,53.7,57.4,62.1,67.8,76.2,84.8,96.7,106.5,115.0],"end":115.0},{"id":"CUUR0000SAH","label":"Housing","cls":"mixed","base_year":2000,"values":[0.0,4.0,6.3,9.0,11.8,15.4,19.8,23.6,27.6,28.0,27.5,29.2,31.4,34.1,37.5,40.4,43.9,48.2,52.4,56.9,60.3,65.6,77.4,88.8,97.1],"end":97.1},{"id":"CUUR0000SAF","label":"Food & beverage","cls":"mixed","base_year":2000,"values":[0.0,3.1,5.0,7.2,10.9,13.5,16.2,20.8,27.2,29.6,30.7,35.3,38.8,40.8,44.0,46.6,47.1,48.4,50.5,53.3,58.4,64.4,80.2,90.4,94.6],"end":94.6},{"id":"CUUR0000SA0","label":"Overall inflation","cls":"reference","base_year":2000,"values":[0.0,2.8,4.5,6.8,9.7,13.4,17.1,20.4,25.0,24.6,26.6,30.6,33.3,35.3,37.5,37.6,39.4,42.3,45.8,48.5,50.3,57.4,70.0,76.9,82.2],"end":82.2},{"id":"CUUR0000SETA01","label":"New cars","cls":"tradable","base_year":2000,"values":[0.0,-0.4,-1.9,-3.4,-4.0,-3.4,-3.6,-4.6,-6.0,-5.0,-3.3,-0.6,1.0,2.1,2.5,3.1,3.2,3.0,2.5,2.9,3.4,9.5,20.8,25.3,24.6],"end":24.6},{"id":"CUUR0000SAA","label":"Clothing","cls":"tradable","base_year":2000,"values":[0.0,-1.8,-4.3,-6.7,-7.1,-7.7,-7.8,-8.2,-8.2,-7.3,-7.8,-5.8,-2.6,-1.7,-1.6,-2.8,-2.7,-3.1,-3.0,-4.3,-8.9,-6.6,-1.9,0.8,1.5],"end":1.5},{"id":"CUUR0000SEED03","label":"Cellphone service","cls":"tradable","base_year":2000,"values":[0.0,-10.3,-11.3,-12.1,-12.9,-14.5,-15.0,-15.3,-15.5,-15.4,-17.9,-20.8,-21.5,-22.9,-24.5,-27.3,-28.0,-35.7,-37.4,-38.9,-37.7,-36.6,-36.9,-37.1,-38.0],"end":-38.0},{"id":"CUUR0000SERE01","label":"Toys","cls":"tradable","base_year":2000,"values":[0.0,-5.0,-10.9,-17.1,-21.1,-26.5,-29.8,-33.1,-36.6,-40.0,-43.9,-46.4,-49.1,-51.8,-54.8,-57.7,-61.2,-64.6,-68.0,-70.5,-72.4,-72.4,-71.9,-72.2,-73.5],"end":-73.5},{"id":"CUUR0000SEEE01","label":"Software","cls":"tradable","base_year":2000,"values":[0.0,-28.0,-46.0,-57.2,-62.8,-68.8,-73.6,-76.4,-79.3,-82.1,-83.4,-85.0,-86.4,-87.6,-88.6,-89.6,-90.3,-90.7,-91.1,-91.4,-91.7,-91.4,-91.5,-91.9,-92.2],"end":-92.2},{"id":"CUUR0000SERA01","label":"TVs","cls":"tradable","base_year":2000,"values":[0.0,-10.3,-19.6,-30.2,-39.9,-46.8,-55.3,-66.1,-72.0,-78.8,-84.0,-86.7,-89.1,-90.8,-92.1,-93.2,-94.5,-95.3,-96.1,-96.8,-97.3,-97.1,-97.4,-97.7,-97.9],"end":-97.9}],"income":{"2000":42148,"2024":83730},"meta":{"cpi_2000_2024_pct":82.2,"source":"BLS CPI-U (not seasonally adjusted, US city average), annual averages; BLS CES average hourly earnings; U.S. Census Bureau median household income."}};
+/* ============================================================
+   THE CHART OF THE CENTURY — interactive logic (zero deps)
+   ============================================================ */
+"use strict";
+const SVGNS = "http://www.w3.org/2000/svg";
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const finePointer  = matchMedia("(pointer: fine)").matches;
+
+const COL = {
+  "CUUR0000SEMD01":"#7c1d0b","CUUR0000SEEB01":"#9e2b12","CUUR0000SSEA011":"#b83c1c",
+  "CUUR0000SEEB03":"#c75a2e","CUUR0000SAM2":"#d17a45",
+  "CUUR0000SAH":"#8a7e6b","CUUR0000SAF":"#a99e88",
+  "CUUR0000SA0":"#3a4543","WAGES":"#a8792a",
+  "CUUR0000SETA01":"#79a79d","CUUR0000SAA":"#57988e","CUUR0000SEED03":"#2c8780",
+  "CUUR0000SERE01":"#136e72","CUUR0000SEEE01":"#0a5a60","CUUR0000SERA01":"#07474d"
+};
+const DASH = { "CUUR0000SA0":"6 4", "WAGES":"2 5" };
+const EMPH = new Set(["CUUR0000SEMD01","CUUR0000SEEB01","CUUR0000SA0","WAGES","CUUR0000SEEE01","CUUR0000SERA01"]);
+const INK="#14201d", INKSOFT="#5b6663", INKFAINT="#8a938f", RULE="#cbd3d0", RULEFAINT="#dde3e1";
+
+const YEARS = DATA.years;
+const N = YEARS.length - 1;
+const SER = DATA.series;
+const fmtPct = v => (v>=0?"+":"\u2212") + Math.abs(Math.round(v)) + "%";
+const el = (t,a) => { const e=document.createElementNS(SVGNS,t); if(a) for(const k in a) e.setAttribute(k,a[k]); return e; };
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ============================================================
+   1. LINE CHART — the animated divergence
+   ============================================================ */
+(function lineChart(){
+  const svg=document.getElementById("lineChart");
+  const CHARTNAME={"WAGES":"Avg. wages","CUUR0000SA0":"Overall CPI"};
+  const VB={w:1040,h:560}, M={t:26,r:212,b:46,l:54};
+  const PW=VB.w-M.l-M.r, PH=VB.h-M.t-M.b;
+  const yMin=-100, yMax=270;
+  const xS=i=> M.l + (i/N)*PW;
+  const yS=v=> M.t + (1-(v-yMin)/(yMax-yMin))*PH;
+
+  // static grid + axes
+  const gGrid=el("g"); svg.appendChild(gGrid);
+  gGrid.appendChild(el("rect",{x:M.l,y:yS(0),width:PW,height:(M.t+PH)-yS(0),fill:"rgba(19,110,114,.045)"}));
+  for(let v=yMin; v<=yMax; v+=50){
+    const y=yS(v), zero=(v===0);
+    gGrid.appendChild(el("line",{x1:M.l,y1:y,x2:M.l+PW,y2:y,class:zero?"zero-line":"grid-line"}));
+    const tx=el("text",{x:M.l-12,y:y,class:"axis-label","text-anchor":"end","dominant-baseline":"middle"});
+    tx.textContent=(v>0?"+":"")+v+"%"; gGrid.appendChild(tx);
+    if(zero) gGrid.appendChild(el("line",{x1:M.l,y1:y-5,x2:M.l,y2:y+5,class:"zero-tick","stroke-width":1.2}));
+  }
+  [2000,2005,2010,2015,2020,2024].forEach(yr=>{
+    const i=yr-2000, x=xS(i);
+    gGrid.appendChild(el("line",{x1:x,y1:M.t,x2:x,y2:M.t+PH,class:"grid-line"}));
+    const tx=el("text",{x:x,y:M.t+PH+22,class:"axis-label","text-anchor":"middle"});
+    tx.textContent=(yr===2000||yr===2024)?yr:("\u2019"+String(yr).slice(2));
+    gGrid.appendChild(tx);
+  });
+  const yAxisTitle=el("text",{x:M.l,y:M.t-10,class:"axis-label","text-anchor":"start"});
+  yAxisTitle.textContent="Index \u00b7 2000 = 0%"; gGrid.appendChild(yAxisTitle);
+
+  // dynamic layers
+  const head=el("line",{x1:M.l,y1:M.t,x2:M.l,y2:M.t+PH,stroke:INK,"stroke-width":1,"stroke-opacity":.30}); svg.appendChild(head);
+  const gLines=el("g"); svg.appendChild(gLines);
+  const gDots=el("g"); svg.appendChild(gDots);
+  const gLabels=el("g"); svg.appendChild(gLabels);
+  const gHover=el("g"); svg.appendChild(gHover);
+
+  const paths={};
+  SER.forEach(s=>{
+    const p=el("path",{fill:"none",stroke:COL[s.id],
+      "stroke-width":EMPH.has(s.id)?2.6:1.5,
+      "stroke-opacity":EMPH.has(s.id)?1:.82,
+      "stroke-linejoin":"round","stroke-linecap":"round"});
+    if(DASH[s.id]) p.setAttribute("stroke-dasharray",DASH[s.id]);
+    gLines.appendChild(p); paths[s.id]=p;
+  });
+
+  function valAt(vals,t){
+    const n=Math.floor(t);
+    if(n>=N) return vals[N];
+    const a=vals[n], b=vals[n+1];
+    if(a==null||b==null) return (a!=null?a:b);
+    return a+(b-a)*(t-n);
+  }
+  function pathD(vals,t){
+    const pts=[]; const n=Math.min(Math.floor(t),N);
+    for(let i=0;i<=n;i++) if(vals[i]!=null) pts.push([xS(i),yS(vals[i])]);
+    if(t>n && n<N){ const a=vals[n], b=vals[n+1];
+      if(a!=null&&b!=null){ const f=t-n; pts.push([xS(n+f),yS(a+(b-a)*f)]); } }
+    if(!pts.length) return "";
+    return "M"+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L");
+  }
+
+  function render(t){
+    head.setAttribute("x1",xS(t)); head.setAttribute("x2",xS(t));
+    while(gDots.firstChild) gDots.removeChild(gDots.firstChild);
+    while(gLabels.firstChild) gLabels.removeChild(gLabels.firstChild);
+    const labs=[];
+    SER.forEach(s=>{
+      const d=pathD(s.values,t); paths[s.id].setAttribute("d",d);
+      if(t<=0 && s.values[0]==null) return;
+      const v=valAt(s.values,t); if(v==null) return;
+      const x=xS(t), y=yS(v);
+      gDots.appendChild(el("circle",{cx:x,cy:y,r:EMPH.has(s.id)?3.4:2.4,fill:COL[s.id]}));
+      labs.push({id:s.id,name:CHARTNAME[s.id]||s.label,col:COL[s.id],v:v,y:y});
+    });
+    // de-collide labels
+    labs.sort((a,b)=>a.y-b.y);
+    const gap=15.5, maxY=M.t+PH;
+    for(let i=1;i<labs.length;i++) if(labs[i].y-labs[i-1].y<gap) labs[i].y=labs[i-1].y+gap;
+    let over=labs.length? labs[labs.length-1].y-maxY : 0;
+    if(over>0) for(let i=labs.length-1;i>=0;i--){ labs[i].y=Math.max(M.t+6,labs[i].y-over); if(i>0 && labs[i].y-labs[i-1].y>=gap) break; }
+    const lx=M.l+PW+8;
+    labs.forEach(L=>{
+      gLabels.appendChild(el("line",{x1:M.l+PW+1,y1:yS(valAt(SER.find(s=>s.id===L.id).values,t)),x2:lx-2,y2:L.y,stroke:L.col,"stroke-width":.8,"stroke-opacity":.5}));
+      const txt=el("text",{x:lx,y:L.y,"dominant-baseline":"middle"});
+      if(EMPH.has(L.id)){
+        const nm=el("tspan",{fill:INK,class:"serie-name"}); nm.textContent=L.name+"  ";
+        const vl=el("tspan",{fill:L.col,class:"serie-label","font-weight":"600"}); vl.textContent=fmtPct(L.v);
+        txt.appendChild(nm); txt.appendChild(vl);
+      } else {
+        txt.setAttribute("class","serie-label"); txt.setAttribute("fill",L.col); txt.textContent=fmtPct(L.v);
+      }
+      gLabels.appendChild(txt);
+    });
+    document.getElementById("yearOut").textContent = 2000+Math.round(t);
+  }
+
+  // animation
+  let cur=0, playing=false, raf=null, last=0, started=false;
+  const DUR=6800;
+  const btn=document.getElementById("playBtn"), txt=document.getElementById("playTxt"), scrub=document.getElementById("scrub");
+  function ui(p){ btn.classList.toggle("playing",p); txt.textContent=p?"Pause":(cur>=N?"Replay":"Play"); }
+  function tick(ts){ if(!playing) return; if(!last) last=ts; const dt=ts-last; last=ts;
+    cur+=(N/DUR)*dt; if(cur>=N){cur=N;playing=false;} render(cur); scrub.value=Math.round(cur);
+    if(playing) raf=requestAnimationFrame(tick); else ui(false); }
+  function play(){ if(cur>=N) cur=0; playing=true; last=0; ui(true); raf=requestAnimationFrame(tick); }
+  function pause(){ playing=false; cancelAnimationFrame(raf); ui(false); }
+  btn.addEventListener("click",()=> playing?pause():play());
+  scrub.addEventListener("input",()=>{ pause(); cur=+scrub.value; render(cur); });
+
+  // hover crosshair (fine pointer, only when fully drawn)
+  if(finePointer){
+    const cl=el("line",{class:"zero-tick",stroke:INK,"stroke-width":.8,"stroke-opacity":.45,y1:M.t,y2:M.t+PH}); cl.style.display="none"; gHover.appendChild(cl);
+    const tip=document.getElementById("lineTip");
+    svg.addEventListener("pointermove",e=>{
+      if(playing||cur<N){ cl.style.display="none"; tip.style.opacity=0; return; }
+      const r=svg.getBoundingClientRect(); const sx=(e.clientX-r.left)/r.width*VB.w;
+      const i=clamp(Math.round((sx-M.l)/PW*N),0,N);
+      const x=xS(i); cl.style.display=""; cl.setAttribute("x1",x); cl.setAttribute("x2",x);
+      const rows=SER.map(s=>({s,v:s.values[i]})).filter(o=>o.v!=null).sort((a,b)=>b.v-a.v);
+      let html='<div class="ty">'+(2000+i)+'</div>';
+      rows.forEach(o=>{ html+='<div class="tr"><span><i style="background:'+COL[o.s.id]+'"></i>'+o.s.label+'</span><b>'+fmtPct(o.v)+'</b></div>'; });
+      tip.innerHTML=html; tip.style.opacity=1;
+      const wrap=document.getElementById("lineWrap").getBoundingClientRect();
+      let px=e.clientX-wrap.left+14, py=e.clientY-wrap.top+14;
+      if(px+220>wrap.width) px=e.clientX-wrap.left-px-0+ (wrap.width-px-230<0? -(230):14);
+      if(px+230>wrap.width) px=Math.max(8,e.clientX-wrap.left-238);
+      if(py+ tip.offsetHeight>wrap.height) py=Math.max(8,wrap.height-tip.offsetHeight-8);
+      tip.style.left=px+"px"; tip.style.top=py+"px";
+    });
+    svg.addEventListener("pointerleave",()=>{ cl.style.display="none"; tip.style.opacity=0; });
+  }
+
+  // init
+  if(reduceMotion){ cur=N; render(N); scrub.value=N; ui(false); }
+  else { render(0); }
+  const io=new IntersectionObserver((ents)=>{ ents.forEach(en=>{ if(en.isIntersecting && !started && !reduceMotion){ started=true; setTimeout(play,420); } }); },{threshold:.35});
+  io.observe(document.getElementById("lineChart"));
+})();
+
+/* ============================================================
+   2. BAR CHART — the ranking
+   ============================================================ */
+(function barChart(){
+  const svg=document.getElementById("barChart");
+  const VB={w:960,h:640}, M={t:42,r:60,b:34,l:150};
+  const PW=VB.w-M.l-M.r, PH=VB.h-M.t-M.b;
+  const dMin=-100, dMax=270;
+  const xS=v=> M.l + (v-dMin)/(dMax-dMin)*PW;
+  const rows=SER, rh=PH/rows.length, zeroX=xS(0);
+
+  // x gridlines + labels
+  const gAx=el("g"); svg.appendChild(gAx);
+  [-100,0,100,200].forEach(v=>{
+    const x=xS(v);
+    gAx.appendChild(el("line",{x1:x,y1:M.t-6,x2:x,y2:M.t+PH,class:(v===0)?"zero-line":"grid-line"}));
+    const tx=el("text",{x:x,y:M.t+PH+22,class:"axis-label","text-anchor":"middle"});
+    tx.textContent=(v>0?"+":"")+v+"%"; gAx.appendChild(tx);
+  });
+  // reference guides: CPI +82, wages +115
+  [{v:82,c:"#3a4543",t:"overall CPI +82%",anc:"end",dx:-6},{v:115,c:"#a8792a",t:"avg wages +115%",anc:"start",dx:6}].forEach(g=>{
+    const x=xS(g.v);
+    gAx.appendChild(el("line",{x1:x,y1:M.t-6,x2:x,y2:M.t+PH,stroke:g.c,"stroke-width":1.1,"stroke-dasharray":"4 4","stroke-opacity":.85}));
+    const tx=el("text",{x:x+g.dx,y:M.t-14,class:"serie-label","text-anchor":g.anc,fill:g.c,"font-weight":"600","font-size":"11"});
+    tx.textContent=g.t; gAx.appendChild(tx);
+  });
+
+  const gBars=el("g"); svg.appendChild(gBars);
+  const rectRefs=[];
+  rows.forEach((s,i)=>{
+    const cy=M.t+i*rh+rh/2, bh=Math.min(20,rh*0.56);
+    const vX=xS(s.end), pos=s.end>=0;
+    const finalX=pos?zeroX:vX, finalW=Math.abs(vX-zeroX);
+    const rect=el("rect",{x:zeroX,y:cy-bh/2,width:0,height:bh,rx:1.5,fill:COL[s.id],class:"bar-rect","data-cls":s.cls});
+    rect.style.transition="width .9s cubic-bezier(.22,1,.36,1), x .9s cubic-bezier(.22,1,.36,1)";
+    rect.style.transitionDelay=(i*42)+"ms";
+    gBars.appendChild(rect); rectRefs.push({rect,finalX,finalW});
+    // name on the empty side near zero
+    const nm=el("text",{y:cy,"dominant-baseline":"middle","font-size":"13.5",fill:INK,class:""});
+    nm.textContent=s.label;
+    if(pos){ nm.setAttribute("x",zeroX-9); nm.setAttribute("text-anchor","end"); }
+    else   { nm.setAttribute("x",zeroX+9); nm.setAttribute("text-anchor","start"); }
+    if(EMPH.has(s.id)) nm.setAttribute("font-weight","600");
+    gBars.appendChild(nm);
+    // value at the tip
+    const vl=el("text",{y:cy,"dominant-baseline":"middle",class:"serie-label","font-weight":"600",fill:COL[s.id],"font-size":"13"});
+    vl.textContent=fmtPct(s.end);
+    if(pos){ vl.setAttribute("x",vX+7); vl.setAttribute("text-anchor","start"); }
+    else   { vl.setAttribute("x",vX-7); vl.setAttribute("text-anchor","end"); }
+    gBars.appendChild(vl);
+    rect._cls=s.cls;
+  });
+
+  let drawn=false;
+  function draw(){ if(drawn) return; drawn=true;
+    rectRefs.forEach(r=>{ if(reduceMotion) r.rect.style.transition="none"; r.rect.setAttribute("x",r.finalX); r.rect.setAttribute("width",r.finalW); }); }
+  if(reduceMotion) draw();
+  else { const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)draw();}),{threshold:.2}); io.observe(svg); }
+
+  // group toggles
+  document.querySelectorAll(".toggle").forEach(tg=>{
+    tg.addEventListener("click",()=>{
+      tg.classList.toggle("off");
+      const grp=tg.dataset.grp, on=!tg.classList.contains("off");
+      gBars.querySelectorAll('rect[data-cls="'+grp+'"]').forEach(r=>{ r.style.opacity=on?1:.12; });
+    });
+  });
+})();
+
+/* ============================================================
+   3. CALCULATOR — your personal inflation rate
+   ============================================================ */
+(function calculator(){
+  const BUCKETS=[
+    {key:"house", name:"Housing & food",            note:"+96%",  val:96 },
+    {key:"health",name:"Health care",               note:"+130%", val:130},
+    {key:"edu",   name:"Education & child care",     note:"+170%", val:170},
+    {key:"goods", name:"Transport & general goods",  note:"+35%",  val:35 },
+    {key:"tech",  name:"Electronics & tech",         note:"\u221275%", val:-75},
+    {key:"other", name:"Other services & insurance", note:"+90%",  val:90 }
+  ];
+  const PERSONAS=[
+    {name:"Typical household", w:{house:40,health:11,edu:6, goods:18,tech:5, other:20}},
+    {name:"Young renter",      w:{house:42,health:5, edu:3, goods:24,tech:14,other:12}},
+    {name:"New parents",       w:{house:34,health:14,edu:24,goods:15,tech:4, other:9 }},
+    {name:"College + medical", w:{house:20,health:26,edu:30,goods:10,tech:2, other:12}},
+    {name:"Retiree",           w:{house:34,health:26,edu:2, goods:14,tech:3, other:21}}
+  ];
+  const state={}; PERSONAS[0].w && Object.assign(state,PERSONAS[0].w);
+  let activePersona=0;
+
+  const incNow=document.getElementById("incNow"), incThen=document.getElementById("incThen");
+  const num = s => { const n=parseFloat(String(s).replace(/[^0-9.]/g,"")); return isNaN(n)?0:n; };
+  const comma = n => Math.round(n).toLocaleString("en-US");
+
+  // build personas
+  const pr=document.getElementById("personaRow");
+  PERSONAS.forEach((p,i)=>{
+    const c=document.createElement("button"); c.className="chip"+(i===0?" active":""); c.textContent=p.name; c.type="button";
+    c.addEventListener("click",()=>{ Object.assign(state,p.w); activePersona=i; syncChips(); syncSliders(); compute(); });
+    pr.appendChild(c);
+  });
+  function syncChips(){ pr.querySelectorAll(".chip").forEach((c,i)=>c.classList.toggle("active",i===activePersona)); }
+
+  // build sliders
+  const host=document.getElementById("sliderHost"); const inputs={};
+  BUCKETS.forEach(b=>{
+    const wrap=document.createElement("div"); wrap.className="slider";
+    wrap.innerHTML='<div class="top"><span class="nm">'+b.name+' <em>'+b.note+'</em></span><span class="wt" id="wt-'+b.key+'">0%</span></div>';
+    const inp=document.createElement("input"); inp.type="range"; inp.min=0; inp.max=60; inp.value=state[b.key]||0; inp.setAttribute("aria-label",b.name+" share of spending");
+    inp.addEventListener("input",()=>{ state[b.key]=+inp.value; activePersona=-1; syncChips(); compute(); });
+    wrap.appendChild(inp); host.appendChild(wrap); inputs[b.key]=inp;
+  });
+  function syncSliders(){ BUCKETS.forEach(b=>{ inputs[b.key].value=state[b.key]||0; }); }
+
+  function compute(){
+    const now=num(incNow.value), then=num(incThen.value);
+    const sum=BUCKETS.reduce((a,b)=>a+(state[b.key]||0),0)||1;
+    let blended=0; BUCKETS.forEach(b=>{ blended += ((state[b.key]||0)/sum)*b.val; });
+    document.getElementById("wt-"+"house"); BUCKETS.forEach(b=>{ document.getElementById("wt-"+b.key).textContent=Math.round((state[b.key]||0)/sum*100)+"%"; });
+
+    const incGrowth = then>0 ? (now/then-1)*100 : 0;
+    const realFactor = then>0 ? (now/then)/(1+blended/100) : 0;
+    const realPct=(realFactor-1)*100;
+    const equiv2000 = now/(1+blended/100);
+
+    // verdict
+    const vEl=document.getElementById("verdict"), vSub=document.getElementById("verdictSub");
+    vEl.classList.remove("good","bad","flat");
+    if(realPct>2){ vEl.textContent=fmtPct(realPct).replace("+","+")+" ahead"; vEl.classList.add("good"); }
+    else if(realPct<-2){ vEl.textContent=fmtPct(realPct)+" behind"; vEl.classList.add("bad"); }
+    else { vEl.textContent="Treading water"; vEl.classList.add("flat"); }
+    vSub.innerHTML="A household that spends like this faced about <b>"+fmtPct(blended)+"</b> inflation since 2000 \u2014 versus the official <b>+82%</b>. Set against income growth of <b>"+fmtPct(incGrowth)+"</b>, real buying power "+(realPct>=0?"rose":"fell")+" roughly <b>"+fmtPct(Math.abs(realPct)).replace("+","")+"</b>.";
+
+    // metric bars
+    const MAX=Math.max(130, incGrowth, blended)+12;
+    const setBar=(id,vid,v)=>{ document.getElementById(id).style.width=clamp(v/MAX*100,1.5,100)+"%"; document.getElementById(vid).textContent=fmtPct(v); };
+    setBar("mbIncome","mbIncomeV",incGrowth);
+    setBar("mbBasket","mbBasketV",blended);
+    document.getElementById("mbCpi").style.width=clamp(82/MAX*100,1.5,100)+"%";
+
+    // concrete
+    const diff=equiv2000-then;
+    document.getElementById("concrete").innerHTML=
+      "In real terms, your <span class=\"big\">$"+comma(now)+"</span> today buys what <span class=\"big\">$"+comma(equiv2000)+"</span> bought in 2000 \u2014 for this basket. "+
+      "Back then the comparison income was <span class=\"big\">$"+comma(then)+"</span>, leaving you about <span class=\"big\">"+(diff>=0?"$"+comma(Math.abs(diff))+" ahead":"$"+comma(Math.abs(diff))+" behind")+"</span>.";
+  }
+
+  [incNow,incThen].forEach(inp=>{
+    inp.addEventListener("input",compute);
+    inp.addEventListener("blur",()=>{ const n=num(inp.value); if(n>0) inp.value=comma(n); });
+  });
+  syncSliders(); compute();
+})();
+
+/* ============================================================
+   4. REVEAL ON SCROLL
+   ============================================================ */
+(function reveal(){
+  const els=document.querySelectorAll(".reveal");
+  if(reduceMotion){ els.forEach(e=>e.classList.add("in")); return; }
+  const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } }),{threshold:.12});
+  els.forEach(e=>io.observe(e));
+})();
+
+</script>
+</body>
+</html>
